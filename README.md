@@ -15,7 +15,7 @@ Running PreFreeSurfer, FreeSurfer, and PostFreeSurfer stages will preprocess ana
 It is recommended to use the infant-abcd-bids-pipeline BIDS App (whose docker images is available on DockerHub) to run the pipeline as it simplifies the interface by providing defaults for most options. The application can also run dcan-bold-preprocessing, executive summary, and custom clean. The stages are optional and can be controlled through that application's interface.
 
 
-Please cite these papers for use of this pipeline:
+## Please cite these papers for use of this pipeline:
 
 Autio, Joonas A, Glasser, Matthew F, Ose, Takayuki, Donahue, Chad J, Bastiani, Matteo, Ohno, Masahiro, Kawabata, Yoshihiko, Urushibata, Yuta, Murata, Katsutoshi, Nishigori, Kantaro, Yamaguchi, Masataka, Hori, Yuki, Yoshida, Atsushi, Go, Yasuhiro, Coalson, Timothy S, Jbabdi, Saad, Sotiropoulos, Stamatios N, Smith, Stephen, Van Essen, David C, Hayashi, Takuya. (2019). Towards HCP-Style Macaque Connectomes: 24-Channel 3T Multi-Array Coil, MRI Sequences and Preprocessing. BioRxiv, 602979. https://doi.org/10.1101/602979
 
@@ -23,11 +23,16 @@ Donahue, Chad J, Sotiropoulos, Stamatios N, Jbabdi, Saad, Hernandez-Fernandez, M
 
 Glasser, Matthew F, Sotiropoulos, Stamatios N, Wilson, J Anthony, Coalson, Timothy S, Fischl, Bruce, Andersson, Jesper L, Xu, Junqian, Jbabdi, Saad, Webster, Matthew, Polimeni, Jonathan R, Van Essen, David C, Jenkinson, Mark. (2013). The minimal preprocessing pipelines for the Human Connectome Project. NeuroImage, 80, 105–124. https://doi.org/10.1016/j.neuroimage.2013.04.127
 
+## Links
 [ANTs](http://stnava.github.io/ANTs)
+
 [DiffeomorphicRegistration](https://www.ncbi.nlm.nih.gov/pubmed/17659998)
+
 [JointLabelFusion](http://www.ncbi.nlm.nih.gov/pubmed/22732662)
 
 [HCP](http://www.humanconnectome.org)
+
 [HCPGit](https://github.com/Washington-University/Pipelines)
+
 [GlasserEtAl](http://www.ncbi.nlm.nih.gov/pubmed/23668970)
 
