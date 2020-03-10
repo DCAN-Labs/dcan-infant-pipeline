@@ -25,6 +25,7 @@ GCA=`opts_GetOpt1 "--gca" $@`
 useT2=`opts_GetOpt1 "--useT2" $@`
 MaxThickness=`opts_GetOpt1 "--maxThickness" $@` # Max threshold for thickness measurements (default = 5mm)
 NormMethod=`opts_GetOpt1 "--normalizationMethod" $@`
+SmoothIterations=`opts_GetOpt1 "--smoothiterations" $@
 
 T1wImageFile=`remove_ext $T1wImage`
 T1wImageBrainFile=`remove_ext $T1wImageBrain`
@@ -37,13 +38,17 @@ if [ -z  "${NormMethod}" ] ; then
 fi
 
 if [[ "${NormMethod^^}" != "NONE" ]] ; then
-	Modalities="T1w T1wN"
+    Modalities="T1w T1wN"
 fi
 
 if [ -z "${MaxThickness}" ] ; then
     MaxThickness=5     # FreeSurfer default is 5 mm
 fi
 MAXTHICKNESS="-max ${MaxThickness}"
+
+if [ -z "${SmoothIterations}" ] ; then
+    SmoothIterations=10      # mris_smooth default is 10 iterations
+fi
 
 ######## FNL CODE #######
 echo "`basename $0` $@"
@@ -60,10 +65,10 @@ cd $SubjectDIR
 # FreeSurfer creates 2 directories w/in T1w for its files:
 #       <subject id> and <subject id>N.
 if [ -e "${SUBJECTS_DIR}"/$SubjectID ]; then
-	rm -rf "${SUBJECTS_DIR}"/$SubjectID
+    rm -rf "${SUBJECTS_DIR}"/$SubjectID
 fi
 if [ -e "${SUBJECTS_DIR}"/${SubjectID}N ]; then
-	rm -rf "${SUBJECTS_DIR}"/${SubjectID}N
+    rm -rf "${SUBJECTS_DIR}"/${SubjectID}N
 fi
 mksubjdirs $SubjectID
 
@@ -87,10 +92,10 @@ fi
 
 #@TODO test isoxfm for this data.  Will it work without being 1mm isotropic?
 if ! ${CrudeHistogramMatching:-true}; then
-	flirt -interp spline -in "$T1wImage"  -ref "$T1wImage" -applyisoxfm 1 -out "$T1wImageFile"_1mm.nii.gz
+    flirt -interp spline -in "$T1wImage"  -ref "$T1wImage" -applyisoxfm 1 -out "$T1wImageFile"_1mm.nii.gz
 else
-	cp "$T1wImage" "$T1wImageFile"_1mm.nii.gz
-	echo "1mm files are misnamed!" > "${SUBJECTS_DIR}"/README.txt
+    cp "$T1wImage" "$T1wImageFile"_1mm.nii.gz
+    echo "1mm files are misnamed!" > "${SUBJECTS_DIR}"/README.txt
 fi
 
 applywarp --rel --interp=spline -i "$T1wImage" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wImageFile"_1mm.nii.gz
@@ -100,20 +105,20 @@ fslmaths "$T1wImageBrainFile"_1mm.nii.gz -thr 0 "$T1wImageBrainFile"_1mm.nii.gz 
 applywarp --rel --interp=nn -i "$AsegFile".nii.gz -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$AsegFile"_1mm.nii.gz
 # convert Norm files if in use
 if [[ "${NormMethod^^}" != "NONE" ]] ; then
-	applywarp --rel --interp=spline -i "$T1wNImage" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wNImageFile"_1mm.nii.gz
-	applywarp --rel --interp=nn -i "$T1wNImageBrain" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wNImageBrainFile"_1mm.nii.gz
-	fslmaths "$T1wNImageBrainFile"_1mm.nii.gz -thr 0 "$T1wNImageBrainFile"_1mm.nii.gz # ensure no negative values in input image
+    applywarp --rel --interp=spline -i "$T1wNImage" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wNImageFile"_1mm.nii.gz
+    applywarp --rel --interp=nn -i "$T1wNImageBrain" -r "$T1wImageFile"_1mm.nii.gz --premat=$FSLDIR/etc/flirtsch/ident.mat -o "$T1wNImageBrainFile"_1mm.nii.gz
+    fslmaths "$T1wNImageBrainFile"_1mm.nii.gz -thr 0 "$T1wNImageBrainFile"_1mm.nii.gz # ensure no negative values in input image
 fi
 
 for Modality in $Modalities; do
 
 if [ $Modality = T1w ]; then
-	TXwImageBrainFile="$T1wImageBrainFile"
-	tmpID=$SubjectID
+    TXwImageBrainFile="$T1wImageBrainFile"
+    tmpID=$SubjectID
 elif [ $Modality = T1wN ]; then
-	TXwImageBrainFile="$T1wNImageBrainFile"
-	tmpID=${SubjectID}N
-	mksubjdirs $tmpID
+    TXwImageBrainFile="$T1wNImageBrainFile"
+    tmpID=${SubjectID}N
+    mksubjdirs $tmpID
 fi
 
 mri_convert --conform -ns 1 "$TXwImageBrainFile"_1mm.nii.gz "$tmpID"/mri/001.mgz
@@ -164,32 +169,35 @@ popd > /dev/null
 
 # create initial white matter surface
 if ${CrudeHistogramMatching:-true}; then
-	echo "BEGIN: recon-all-to-pial for T1w"
-	recon-all -subjid ${SubjectID} -tessellate -smooth1 -inflate1 -qsphere -fix
-	echo "Using Adult-Normalized brain to make white matter surface"
-	cp ${SubjectID}N/mri/brain.finalsurfs.mgz ${SubjectID}/mri/brain.AN.mgz
-	mris_make_surfaces ${MAXTHICKNESS} -whiteonly -noaparc -mgz -T1 brain.AN ${SubjectID} lh
-	mris_make_surfaces ${MAXTHICKNESS} -whiteonly -noaparc -mgz -T1 brain.AN ${SubjectID} rh
-	recon-all -subjid ${SubjectID} -smooth2 -inflate2 -sphere -surfreg -jacobian_white -avgcurv -cortparc
-	cp "${SUBJECTS_DIR}"/"$SubjectID"/mri/aseg.mgz "${SUBJECTS_DIR}"/"$SubjectID"/mri/wmparc.mgz
-	echo "END: recon-all-to-pial for T1w"
+    echo "BEGIN: recon-all-to-pial for T1w"
+    recon-all -subjid ${SubjectID} -tessellate -smooth1 -inflate1 -qsphere -fix
+    echo "Using Adult-Normalized brain to make white matter surface"
+    cp ${SubjectID}N/mri/brain.finalsurfs.mgz ${SubjectID}/mri/brain.AN.mgz
+    mris_make_surfaces ${MAXTHICKNESS} -whiteonly -noaparc -mgz -T1 brain.AN ${SubjectID} lh
+    mris_make_surfaces ${MAXTHICKNESS} -whiteonly -noaparc -mgz -T1 brain.AN ${SubjectID} rh
+    # Do our own smoothing before the next recon-all so that we can choose the number of iterations.
+    mris_smooth -n ${SmoothIterations} lh.orig.nofix lh.smoothwm.nofix
+    mris_smooth -n ${SmoothIterations} rh.orig.nofix rh.smoothwm.nofix
+    recon-all -subjid ${SubjectID} -inflate2 -sphere -surfreg -jacobian_white -avgcurv -cortparc
+    cp "${SUBJECTS_DIR}"/"$SubjectID"/mri/aseg.mgz "${SUBJECTS_DIR}"/"$SubjectID"/mri/wmparc.mgz
+    echo "END: recon-all-to-pial for T1w"
 
-	echo "Using Adult-Normalized brain to make pial surface"
-	for hemi in l r; do
-		# use Pial from Adult-Normalized surface as a prior.
-		cp -T -n ${SubjectID}/surf/"${hemi}"h.white ${SubjectID}/surf/"${hemi}"h.white.noAN
-		mris_make_surfaces ${MAXTHICKNESS} -white NOWRITE -mgz -T1 brain.AN "$SubjectID" ${hemi}h
-		#mris_make_surfaces -nowhite -orig_pial pial -mgz -T1 brain.finalsurfs $Subject ${hemi}h
-	done
-	echo "Beginning final recon-all stages"
-	recon-all -subjid $SubjectID -surfvolume -pctsurfcon \
-	    -parcstats -cortparc2 -parcstats2 -cortribbon -segstats -aparc2aseg -wmparc -balabels
-	echo "End: final recon-all"
+    echo "Using Adult-Normalized brain to make pial surface"
+    for hemi in l r; do
+        # use Pial from Adult-Normalized surface as a prior.
+        cp -T -n ${SubjectID}/surf/"${hemi}"h.white ${SubjectID}/surf/"${hemi}"h.white.noAN
+        mris_make_surfaces ${MAXTHICKNESS} -white NOWRITE -mgz -T1 brain.AN "$SubjectID" ${hemi}h
+        #mris_make_surfaces -nowhite -orig_pial pial -mgz -T1 brain.finalsurfs $Subject ${hemi}h
+    done
+    echo "Beginning final recon-all stages"
+    recon-all -subjid $SubjectID -surfvolume -pctsurfcon \
+        -parcstats -cortparc2 -parcstats2 -cortribbon -segstats -aparc2aseg -wmparc -balabels
+    echo "End: final recon-all"
 
 else
-	echo "running standard recon-all"
-	recon-all -subjid ${SubjectID} -tessellate -smooth1 -inflate1 -qsphere -fix -white -smooth2 -inflate2
-	recon-all -autorecon3 -subjid $SubjectID
+    echo "running standard recon-all"
+    recon-all -subjid ${SubjectID} -tessellate -smooth1 -inflate1 -qsphere -fix -white -smooth2 -inflate2
+    recon-all -autorecon3 -subjid $SubjectID
 fi
 pushd ${SubjectID}/surf > /dev/null
 # Data already in 1mm isotropic, copying white matter
@@ -197,20 +205,20 @@ cp lh.white lh.white.deformed
 cp rh.white rh.white.deformed
 popd > /dev/null
 pushd ${SubjectID}/mri > /dev/null
-	if [ ! -e transforms/eye.dat ]; then
-		mkdir -p transforms
-		echo "$SubjectID" > transforms/eye.dat
-		echo "1" >> transforms/eye.dat
-		echo "1" >> transforms/eye.dat
-		echo "1" >> transforms/eye.dat
-		echo "1 0 0 0" >> transforms/eye.dat
-		echo "0 1 0 0" >> transforms/eye.dat
-		echo "0 0 1 0" >> transforms/eye.dat
-		echo "0 0 0 1" >> transforms/eye.dat
-		echo "round" >> transforms/eye.dat
-	fi
-	# faking refined transformation for T2wtoT1w.mat
-	flirt -in $T1wImage -ref $T1wImage -applyisoxfm 1 -omat transforms/T2wtoT1w.mat #@TODO investigate how this looks downstream
+    if [ ! -e transforms/eye.dat ]; then
+        mkdir -p transforms
+        echo "$SubjectID" > transforms/eye.dat
+        echo "1" >> transforms/eye.dat
+        echo "1" >> transforms/eye.dat
+        echo "1" >> transforms/eye.dat
+        echo "1 0 0 0" >> transforms/eye.dat
+        echo "0 1 0 0" >> transforms/eye.dat
+        echo "0 0 1 0" >> transforms/eye.dat
+        echo "0 0 0 1" >> transforms/eye.dat
+        echo "round" >> transforms/eye.dat
+    fi
+    # faking refined transformation for T2wtoT1w.mat
+    flirt -in $T1wImage -ref $T1wImage -applyisoxfm 1 -omat transforms/T2wtoT1w.mat #@TODO investigate how this looks downstream
 popd > /dev/null
 fslmaths "$T1wImage" -abs -add 1 "${SUBJECTS_DIR}/$SubjectID/mri/T1w_hires.nii.gz"
 
