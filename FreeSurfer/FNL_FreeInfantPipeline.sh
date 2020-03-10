@@ -25,7 +25,7 @@ GCA=`opts_GetOpt1 "--gca" $@`
 useT2=`opts_GetOpt1 "--useT2" $@`
 MaxThickness=`opts_GetOpt1 "--maxThickness" $@` # Max threshold for thickness measurements (default = 5mm)
 NormMethod=`opts_GetOpt1 "--normalizationMethod" $@`
-SmoothIterations=`opts_GetOpt1 "--smoothiterations" $@
+SmoothingIterations=`opts_GetOpt1 "--smoothingIterations" $@
 
 T1wImageFile=`remove_ext $T1wImage`
 T1wImageBrainFile=`remove_ext $T1wImageBrain`
@@ -46,8 +46,8 @@ if [ -z "${MaxThickness}" ] ; then
 fi
 MAXTHICKNESS="-max ${MaxThickness}"
 
-if [ -z "${SmoothIterations}" ] ; then
-    SmoothIterations=10      # mris_smooth default is 10 iterations
+if [ -z "${SmoothingIterations}" ] ; then
+    SmoothingIterations=10      # mris_smooth default is 10 iterations
 fi
 
 ######## FNL CODE #######
@@ -176,8 +176,8 @@ if ${CrudeHistogramMatching:-true}; then
     mris_make_surfaces ${MAXTHICKNESS} -whiteonly -noaparc -mgz -T1 brain.AN ${SubjectID} lh
     mris_make_surfaces ${MAXTHICKNESS} -whiteonly -noaparc -mgz -T1 brain.AN ${SubjectID} rh
     # Do our own smoothing before the next recon-all so that we can choose the number of iterations.
-    mris_smooth -n ${SmoothIterations} lh.orig.nofix lh.smoothwm.nofix
-    mris_smooth -n ${SmoothIterations} rh.orig.nofix rh.smoothwm.nofix
+    mris_smooth -n ${SmoothingIterations} lh.orig.nofix lh.smoothwm.nofix
+    mris_smooth -n ${SmoothingIterations} rh.orig.nofix rh.smoothwm.nofix
     recon-all -subjid ${SubjectID} -inflate2 -sphere -surfreg -jacobian_white -avgcurv -cortparc
     cp "${SUBJECTS_DIR}"/"$SubjectID"/mri/aseg.mgz "${SUBJECTS_DIR}"/"$SubjectID"/mri/wmparc.mgz
     echo "END: recon-all-to-pial for T1w"
