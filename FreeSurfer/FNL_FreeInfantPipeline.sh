@@ -25,7 +25,7 @@ GCA=`opts_GetOpt1 "--gca" $@`
 useT2=`opts_GetOpt1 "--useT2" $@`
 MaxThickness=`opts_GetOpt1 "--maxThickness" $@` # Max threshold for thickness measurements (default = 5mm)
 NormMethod=`opts_GetOpt1 "--normalizationMethod" $@`
-SmoothingIterations=`opts_GetOpt1 "--smoothingIterations" $@
+SmoothingIterations=`opts_GetOpt1 "--smoothingIterations" $@`
 
 T1wImageFile=`remove_ext $T1wImage`
 T1wImageBrainFile=`remove_ext $T1wImageBrain`
