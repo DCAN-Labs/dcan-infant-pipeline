@@ -178,8 +178,9 @@ if ${CrudeHistogramMatching:-true}; then
     mris_make_surfaces ${MAXTHICKNESS} -whiteonly -noaparc -mgz -T1 brain.AN ${SubjectID} lh
     mris_make_surfaces ${MAXTHICKNESS} -whiteonly -noaparc -mgz -T1 brain.AN ${SubjectID} rh
     # Do our own smoothing before the next recon-all so that we can choose the number of iterations.
-    mris_smooth -n ${SmoothingIterations} lh.orig.nofix lh.smoothwm.nofix
-    mris_smooth -n ${SmoothingIterations} rh.orig.nofix rh.smoothwm.nofix
+    surf_files=${SUBJECTS_DIR}/${SubjectID}/surf
+    mris_smooth -n ${SmoothingIterations} ${surf_files}/lh.orig.nofix ${surf_files}/lh.smoothwm.nofix
+    mris_smooth -n ${SmoothingIterations} ${surf_files}/rh.orig.nofix ${surf_files}/rh.smoothwm.nofix
     recon-all -subjid ${SubjectID} -inflate2 -sphere -surfreg -jacobian_white -avgcurv -cortparc
     cp "${SUBJECTS_DIR}"/"$SubjectID"/mri/aseg.mgz "${SUBJECTS_DIR}"/"$SubjectID"/mri/wmparc.mgz
     echo "END: recon-all-to-pial for T1w"
