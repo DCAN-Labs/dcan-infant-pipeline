@@ -47,7 +47,9 @@ fi
 MAXTHICKNESS="-max ${MaxThickness}"
 
 if [ -z "${SmoothingIterations}" ] ; then
-    SmoothingIterations=10      # mris_smooth default is 10 iterations
+    # mris_smooth default is 10 iterations
+    log_Msg "No smoothing iterations were provided. Using default of 10."
+    SmoothingIterations=10
 fi
 
 ######## FNL CODE #######
