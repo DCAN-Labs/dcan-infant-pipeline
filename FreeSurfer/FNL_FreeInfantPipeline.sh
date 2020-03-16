@@ -177,10 +177,22 @@ if ${CrudeHistogramMatching:-true}; then
     cp ${SubjectID}N/mri/brain.finalsurfs.mgz ${SubjectID}/mri/brain.AN.mgz
     mris_make_surfaces ${MAXTHICKNESS} -whiteonly -noaparc -mgz -T1 brain.AN ${SubjectID} lh
     mris_make_surfaces ${MAXTHICKNESS} -whiteonly -noaparc -mgz -T1 brain.AN ${SubjectID} rh
-    # Do our own smoothing before the next recon-all so that we can choose the number of iterations.
+
+    # Do our own smoothing before (rather than within) the next recon-all so that we can
+    # choose the number of iterations.
     surf_files=${SUBJECTS_DIR}/${SubjectID}/surf
+    mri_files=${SUBJECTS_DIR}/${SubjectID}/mri
+    # Note: will need to make some temp files needed by mris_smooth, first.
+    mri_mask -T 5 ${surf_files}/brain.mgz ${surf_files}/brainmask.mgz ${surf_files}/brain.finalsurfs.mgz
+    mris_make_surfaces -aseg ${mri_files}/aseg.presurf -whiteonly -noaparc -mgz -T1 ${surf_files}/brain.finalsurfs ${SubjectID} lh
+    mris_make_surfaces -aseg ${mri_files}/aseg.presurf -whiteonly -noaparc -mgz -T1 ${surf_files}/brain.finalsurfs ${SubjectID} rh
+    # Make the r/l smoothwm files.
     mris_smooth -n ${SmoothingIterations} -nw ${surf_files}/lh.white.preaparc ${surf_files}/lh.smoothwm
     mris_smooth -n ${SmoothingIterations} -nw ${surf_files}/rh.white.preaparc ${surf_files}/rh.smoothwm
+    # Now that we have  r/l smoothwm, no longer need preaparc files. (The finalsurfs file
+    # is used by recon-all, so will let it clean it up.)
+    rm ${surf_files}/lh.white.preaparc ${surf_files}/rh.white.preaparc
+
     recon-all -subjid ${SubjectID} -inflate2 -sphere -surfreg -jacobian_white -avgcurv -cortparc
     cp "${SUBJECTS_DIR}"/"$SubjectID"/mri/aseg.mgz "${SUBJECTS_DIR}"/"$SubjectID"/mri/wmparc.mgz
     echo "END: recon-all-to-pial for T1w"
