@@ -176,11 +176,8 @@ source $HCPPIPEDIR/global/scripts/opts.shlib # Command line option functions
 
 show_usage() {
     cat <<EOF
-
 PreFreeSurferPipeline.sh
-
 Usage: PreeFreeSurferPipeline.sh [options]
-
   --path=<path>        Path to derivative-files folder (required) for all outputs.
   --t1=<T1w images>    An @ symbol separated list of full paths to T1-weighted
                        (T1w) structural images for the subject (required)
@@ -226,27 +223,21 @@ Usage: PreeFreeSurferPipeline.sh [options]
                                     coefficients, Set to "NONE" to turn off
   --avgrdcmethod=<avgrdcmethod>     Averaging and readout distortion correction
                                     method. See below for supported values.
-
       "${NONE_METHOD_OPT}"
          average any repeats with no readout distortion correction
-
       "${FIELDMAP_METHOD_OPT}"
          equivalent to "${SIEMENS_METHOD_OPT}" (see below)
          SiemensFieldMap is preferred. This option value is maintained for
          backward compatibility.
-
       "${SPIN_ECHO_METHOD_OPT}"
          average any repeats and use Spin Echo Field Maps for readout
          distortion correction
-
       "${GENERAL_ELECTRIC_METHOD_OPT}"
          average any repeats and use General Electric specific Gradient
          Echo Field Maps for readout distortion correction
-
       "${SIEMENS_METHOD_OPT}"
          average any repeats and use Siemens specific Gradient Echo
          Field Maps for readout distortion correction
-
   --topupconfig=<file path>      Configuration file for topup or "NONE" if not
                                  used
   --bfsigma=<value>              Bias Field Smoothing Sigma (optional)
@@ -360,10 +351,10 @@ crop=`opts_GetOpt1 "--crop" $@`
 # The default alignment script does cropping of neck, shoulders. Choose the
 # correct script. (Both scripts have same args, outputs.)
 
-acpc_align_script=${HCPPIPEDIR_PreFS}/ACPCAlignment_with_crop.sh
-if [ -n "${crop}" ] && [[ "${crop^^}" == "FALSE" ]] ; then
-    acpc_align_script=${HCPPIPEDIR_PreFS}/ACPCAlignment_no_crop.sh
-fi
+#acpc_align_script=${HCPPIPEDIR_PreFS}/ACPCAlignment_with_crop.sh
+#if [ -n "${crop}" ] && [[ "${crop^^}" == "FALSE" ]] ; then
+#    acpc_align_script=${HCPPIPEDIR_PreFS}/ACPCAlignment_no_crop.sh
+#fi
 
 # ------------------------------------------------------------------------------
 #  Show Command Line Options
@@ -622,27 +613,39 @@ for TXw in ${Modalities} ; do
         --shrink-factor 2 \
         --output ["${TXwFolder}/${TXwImage}.nii.gz","${TXwFolder}/${TXwImage}N4BiasField.nii.gz"]
 
-    # ACPC align T1w or T2w image to NIH pediatric Template to create native volume space
-    log_Msg "Aligning ${TXw} image to Baby ${TXw}Template to create native volume space"
-    log_Msg "mkdir -p ${TXwFolder}/ACPCAlignment"
-
-    # If the user supplied a brainmask, we do things in a different order, below,
-    # so skip the alignment and extraction steps here.
-    if [ -z "${T1BrainMask}" ] ; then
-
-        # Bransize for robustfov is size of brain in z-dimension (using 120mm).
-        mkdir -p ${TXwFolder}/ACPCAlignment
-        ${RUN} ${acpc_align_script} \
-            --workingdir=${TXwFolder}/ACPCAlignment \
-            --in=${TXwFolder}/${TXwImage} \
-            --ref=${TXwTemplate} \
-            --out=${TXwFolder}/${TXwImage}_acpc \
-            --omat=${TXwFolder}/xfms/acpc.mat \
-            --brainsize=${BrainSize}
-
-    fi
-
 done # End of looping over modalities (T1w and T2w)
+
+# ACPC align T2w image to NIH pediatric Template to create native volume space
+log_Msg "Aligning ${TXw} image to Baby ${TXw}Template to create native volume space"
+log_Msg "mkdir -p ${TXwFolder}/ACPCAlignment"
+
+# If the user supplied a brainmask, we do things in a different order, below,
+# so skip the alignment and extraction steps here.
+if [ -z "${T1BrainMask}" ] ; then
+    acpc_align_script_T2=${HCPPIPEDIR_PreFS}/ACPCAlignment_with_crop.sh
+    acpc_align_script_T1=${HCPPIPEDIR_PreFS}/ACPCAlignment_with_crop_T1.sh
+
+    # Bransize for robustfov is size of brain in z-dimension (using 120mm).
+    mkdir -p ${T2wFolder}/ACPCAlignment
+    ${RUN} ${acpc_align_script_T2} \
+        --workingdir=${T2wFolder}/ACPCAlignment \
+        --in=${T2wFolder}/${T2wImage} \
+        --ref=${T2wTemplate} \
+        --out=${T2wFolder}/${T2wImage}_acpc \
+        --omat=${T2wFolder}/xfms/acpc.mat \
+        --brainsize=${BrainSize}
+
+    mkdir -p ${T1wFolder}/ACPCAlignment
+    ${RUN} ${acpc_align_script_T1} \
+        --workingdir=${T1wFolder}/ACPCAlignment \
+        --in=${T1wFolder}/${T1wImage} \
+        --ref=${T1wTemplate} \
+        --out=${T1wFolder}/${T1wImage}_acpc \
+        --omat=${T1wFolder}/xfms/acpc.mat \
+        --brainsize=${BrainSize}
+        --ref_t2=${T2wFolder}/${T2wImage}_acpc
+fi
+
 
 if [ -n "${T1BrainMask}" ] ; then
     # The user has supplied a T1 brain mask. We skipped the alignment in the
@@ -833,7 +836,6 @@ if ${useT2}; then
         fslmaths ${T1wFolder}/${T1wImage}${ext} -mas ${T1wFolder}/${T2wImage}_acpc_dc_brain ${T1wFolder}/${T1wImage}${ext}_brain
     done
 fi
-
 taking out, if want to test, use ${T2wImage}_acpc_brain
 END
 
@@ -982,4 +984,3 @@ if ! [ -z "${ASegDir}" ] ; then
 fi
 
 log_Msg "Completed"
-
