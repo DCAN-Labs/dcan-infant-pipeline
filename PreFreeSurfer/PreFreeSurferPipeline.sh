@@ -642,7 +642,7 @@ if [ -z "${T1BrainMask}" ] ; then
         --ref=${T1wTemplate} \
         --out=${T1wFolder}/${T1wImage}_acpc \
         --omat=${T1wFolder}/xfms/acpc.mat \
-        --brainsize=${BrainSize}
+        --brainsize=${BrainSize} \
         --ref_t2=${T2wFolder}/${T2wImage}_acpc
 fi
 
