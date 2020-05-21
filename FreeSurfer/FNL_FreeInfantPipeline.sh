@@ -83,7 +83,7 @@ Mean=`fslstats $T1wImageBrain -M`
 if [[ "${NormMethod^^}" == "NONE" ]] ; then
     echo Skipping hyper-normalization step per request.
 else
-    ${HCPPIPEDIR_FS}/hypernormalize.sh ${SUBJECTS_DIR} ${NormMethod}
+    ${HCPPIPEDIR_FS}/hypernormalize.sh ${SUBJECTS_DIR} ${Aseg} ${NormMethod}
     T1wNImage=${SUBJECTS_DIR}/T1wN_acpc.nii.gz
     T1wNImageBrain=${SUBJECTS_DIR}/T1wN_acpc_brain.nii.gz
     echo T1wNImage=$T1wNImage
