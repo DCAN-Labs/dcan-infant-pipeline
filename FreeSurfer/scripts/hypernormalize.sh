@@ -1,7 +1,7 @@
 #!/bin/bash
 # args
-if [ $# -lt 1 ]; then
-    echo -e "Usage: `basename $0` <SUBJECT T1W DIRECTORY> [METHOD]"
+if [ $# -lt 2 ]; then
+    echo -e "Usage: `basename $0` <SUBJECT T1W DIRECTORY> <ASEG> [METHOD]"
     exit 1
 fi
 
@@ -9,7 +9,8 @@ SOURCE_DIR=$(readlink -f ${BASH_SOURCE%/*})
 echo SOURCE_DIR=${SOURCE_DIR}
 
 subjectdir=$1
-NormMethod=$2
+aseg=$2
+NormMethod=$3
 if [ -z  "${NormMethod}" ] ; then
     # Default is to use the adult grey matter intensity profile.
     NormMethod="ADULT_GM_IP"
@@ -17,7 +18,7 @@ fi
 
 cd ${subjectdir}
 
-${SOURCE_DIR}/make_WMGMCSF_masks.sh T1w_acpc_dc_restore.nii.gz aseg_acpc.nii.gz
+${SOURCE_DIR}/make_WMGMCSF_masks.sh T1w_acpc_dc_restore.nii.gz ${aseg}
 
 if [[ "${NormMethod^^}" == "ROI_IPS" ]] ; then
     # Call the old script that changes each ROI's intensity profile and puts them back together.
