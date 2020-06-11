@@ -649,7 +649,7 @@ if [ -n "${T1BrainMask}" ] ; then
 
     # The T1w head was ACPC aligned in the loop above. Use the resulting
     # acpc.mat to align the mask.
-    #${FSLDIR}/bin/applywarp --rel --interp=nn -i ${T1wFolder}/${T1wImage}_brain_mask -r ${T1wTemplateBrain} --premat=${T1wFolder}/xfms/acpc.mat -o ${T1wFolder}/${T1wImage}_acpc_brain_mask
+    ${FSLDIR}/bin/applywarp --rel --interp=nn -i ${T1wFolder}/${T1wImage}_brain_mask -r ${T1wTemplateBrain} --premat=${T1wFolder}/xfms/acpc.mat -o ${T1wFolder}/${T1wImage}_acpc_brain_mask
 
     # Use the ACPC aligned T1w brain mask to extract the T1w brain.
     ${FSLDIR}/bin/fslmaths ${T1wFolder}/${T1wImage}_acpc -mas ${T1wFolder}/${T1wImage}_acpc_brain_mask ${T1wFolder}/${T1wImage}_acpc_brain
