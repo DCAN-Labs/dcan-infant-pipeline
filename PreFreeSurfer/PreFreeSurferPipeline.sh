@@ -364,7 +364,7 @@ acpc_align_script=${HCPPIPEDIR_PreFS}/ACPCAlignment_with_crop.sh
 if [ -n "${crop}" ] && [[ "${crop^^}" == "FALSE" ]] ; then
     acpc_align_script=${HCPPIPEDIR_PreFS}/ACPCAlignment_no_crop.sh
 fi
-
+sup
 # ------------------------------------------------------------------------------
 #  Show Command Line Options
 # ------------------------------------------------------------------------------
@@ -643,10 +643,8 @@ if [ -n "${T1BrainMask}" ] ; then
     # the T1w mask to make the T2w mask.
 
     # Copy the user-supplied mask to ${T1wFolder}/${T1wImage}_brain_mask.
-    # The brain mask we are using here is already acpc aligned - KS 20200601.
     imcp ${T1BrainMask} ${T1wFolder}/${T1wImage}_brain_mask
-    imcp ${T1BrainMask} ${T1wFolder}/${T1wImage}_acpc_brain_mask
-
+    
     # The T1w head was ACPC aligned in the loop above. Use the resulting
     # acpc.mat to align the mask.
     ${FSLDIR}/bin/applywarp --rel --interp=nn -i ${T1wFolder}/${T1wImage}_brain_mask -r ${T1wTemplateBrain} --premat=${T1wFolder}/xfms/acpc.mat -o ${T1wFolder}/${T1wImage}_acpc_brain_mask
