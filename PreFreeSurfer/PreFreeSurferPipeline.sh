@@ -350,11 +350,15 @@ crop=`opts_GetOpt1 "--crop" $@`
 
 # The default alignment script does cropping of neck, shoulders. Choose the
 # correct script. (Both scripts have same args, outputs.)
+acpc_align_script_T2=${HCPPIPEDIR_PreFS}/ACPCAlignment_with_crop.sh
+acpc_align_script_T1=${HCPPIPEDIR_PreFS}/ACPCAlignment_with_crop_T1.sh
 
-#acpc_align_script=${HCPPIPEDIR_PreFS}/ACPCAlignment_with_crop.sh
-#if [ -n "${crop}" ] && [[ "${crop^^}" == "FALSE" ]] ; then
-#    acpc_align_script=${HCPPIPEDIR_PreFS}/ACPCAlignment_no_crop.sh
-#fi
+if [ -n "${crop}" ] && [[ "${crop^^}" == "FALSE" ]] ; then
+    acpc_align_script_T2=${HCPPIPEDIR_PreFS}/ACPCAlignment_no_crop.sh
+    acpc_align_script_T1=${HCPPIPEDIR_PreFS}/ACPCAlignment_no_crop_T1.sh
+fi
+
+    
 
 # ------------------------------------------------------------------------------
 #  Show Command Line Options
@@ -619,104 +623,51 @@ done # End of looping over modalities (T1w and T2w)
 log_Msg "Aligning ${TXw} image to Baby ${TXw}Template to create native volume space"
 log_Msg "mkdir -p ${TXwFolder}/ACPCAlignment"
 
-# If the user supplied a brainmask, we do things in a different order, below,
-# so skip the alignment and extraction steps here.
-if [ -z "${T1BrainMask}" ] ; then
-    acpc_align_script_T2=${HCPPIPEDIR_PreFS}/ACPCAlignment_with_crop.sh
-    acpc_align_script_T1=${HCPPIPEDIR_PreFS}/ACPCAlignment_with_crop_T1.sh
+# Bransize for robustfov is size of brain in z-dimension (using 120mm).
+mkdir -p ${T2wFolder}/ACPCAlignment
+${RUN} ${acpc_align_script_T2} \
+    --workingdir=${T2wFolder}/ACPCAlignment \
+    --in=${T2wFolder}/${T2wImage} \
+    --ref=${T2wTemplate} \
+    --out=${T2wFolder}/${T2wImage}_acpc \
+    --omat=${T2wFolder}/xfms/acpc.mat \
+    --brainsize=${BrainSize}
 
-    # Bransize for robustfov is size of brain in z-dimension (using 120mm).
-    mkdir -p ${T2wFolder}/ACPCAlignment
-    ${RUN} ${acpc_align_script_T2} \
-        --workingdir=${T2wFolder}/ACPCAlignment \
-        --in=${T2wFolder}/${T2wImage} \
-        --ref=${T2wTemplate} \
-        --out=${T2wFolder}/${T2wImage}_acpc \
-        --omat=${T2wFolder}/xfms/acpc.mat \
-        --brainsize=${BrainSize}
-
-    mkdir -p ${T1wFolder}/ACPCAlignment
-    ${RUN} ${acpc_align_script_T1} \
-        --workingdir=${T1wFolder}/ACPCAlignment \
-        --in=${T1wFolder}/${T1wImage} \
-        --ref=${T1wTemplate} \
-        --out=${T1wFolder}/${T1wImage}_acpc \
-        --omat=${T1wFolder}/xfms/acpc.mat \
-        --brainsize=${BrainSize} \
-        --ref_t2=${T2wFolder}/${T2wImage}_acpc
-fi
-
+mkdir -p ${T1wFolder}/ACPCAlignment
+${RUN} ${acpc_align_script_T1} \
+    --workingdir=${T1wFolder}/ACPCAlignment \
+    --in=${T1wFolder}/${T1wImage} \
+    --ref=${T1wTemplate} \
+    --out=${T1wFolder}/${T1wImage}_acpc \
+    --omat=${T1wFolder}/xfms/acpc.mat \
+    --brainsize=${BrainSize} \
+    --ref_t2=${T2wFolder}/${T2wImage}_acpc
 
 if [ -n "${T1BrainMask}" ] ; then
-    # The user has supplied a T1 brain mask. 
-    
-    #perform acpc alignment by aligning T1 to template and then T2 to T1_acpc
-    acpc_align_script_T2=${HCPPIPEDIR_PreFS}/ACPCAlignment_with_crop.sh
-    acpc_align_script_T1=${HCPPIPEDIR_PreFS}/ACPCAlignment_with_crop_T1.sh
+    # The user has supplied a T1 brain mask. Extract the T1w brain, then use
+    # the T1w mask to make the T2w mask.
 
-    # Bransize for robustfov is size of brain in z-dimension (using 120mm).
-    mkdir -p ${T2wFolder}/ACPCAlignment
-    ${RUN} ${acpc_align_script_T2} \
-        --workingdir=${T2wFolder}/ACPCAlignment \
-        --in=${T2wFolder}/${T2wImage} \
-        --ref=${T2wTemplate} \
-        --out=${T2wFolder}/${T2wImage}_acpc \
-        --omat=${T2wFolder}/xfms/acpc.mat \
-        --brainsize=${BrainSize}
-
-    mkdir -p ${T1wFolder}/ACPCAlignment
-    ${RUN} ${acpc_align_script_T1} \
-        --workingdir=${T1wFolder}/ACPCAlignment \
-        --in=${T1wFolder}/${T1wImage} \
-        --ref=${T1wTemplate} \
-        --out=${T1wFolder}/${T1wImage}_acpc \
-        --omat=${T1wFolder}/xfms/acpc.mat \
-        --brainsize=${BrainSize} \
-        --ref_t2=${T2wFolder}/${T2wImage}_acpc
-
-
-    log_Msg "User has provided the brain mask to use: ${T1BrainMask}"
     # Copy the user-supplied mask to ${T1wFolder}/${T1wImage}_brain_mask.
-    imcp ${T1BrainMask} ${T1wFolder}/${T1wImage}_acpc_brain_mask 
-    imcp ${T1BrainMask} ${T2wFolder}/${T2wImage}_acpc_brain_mask
+    imcp ${T1BrainMask} ${T1wFolder}/${T1wImage}_brain_mask
     
-    #${T1wFolder}/${T1wImage}_brain_mask
+    # The T1w head was ACPC aligned in the loop above. Use the resulting
+    # acpc.mat to align the mask.
+    ${FSLDIR}/bin/applywarp --rel --interp=nn -i ${T1wFolder}/${T1wImage}_brain_mask -r ${T1wTemplateBrain} --premat=${T1wFolder}/xfms/acpc.mat -o ${T1wFolder}/${T1wImage}_acpc_brain_mask
 
-    # Use the supplied mask to extract the T1 brain using acpc-aligned T1.
+    # Use the ACPC aligned T1w brain mask to extract the T1w brain.
     ${FSLDIR}/bin/fslmaths ${T1wFolder}/${T1wImage}_acpc -mas ${T1wFolder}/${T1wImage}_acpc_brain_mask ${T1wFolder}/${T1wImage}_acpc_brain
 
-    # Do the ACPC aligment with the extracted brain, and get the acpc.mat.
-    #mkdir -p ${T1wFolder}/ACPCAlignment
-    #${RUN} ${acpc_align_script} \
-    #    --workingdir=${T1wFolder}/ACPCAlignment \
-    #    --in=${T1wFolder}/${T1wImage}_brain \
-    #    --ref=${T1wTemplateBrain} \
-    #    --out=${T1wFolder}/${T1wImage}_acpc_brain \
-    #    --omat=${T1wFolder}/xfms/acpc.mat \
-    #    --brainsize=${BrainSize}
+    # Align the T1w to the T2w to get the matrix that will be needed to make
+    # the T2w mask from the T1w mask.
+    ${FSLDIR}/bin/flirt -in ${T1wFolder}/${T1wImage}_acpc -ref ${T2wFolder}/${T2wImage}_acpc -cost mutualinfo \
+        -searchrx -15 15 -searchry -15 15 -searchrz -15 15 -dof 6 \
+        -omat ${T1wFolder}/xfms/tmpT1w2T2w.mat
 
-    # Use the T1w acpc.mat just created to ACPC-align the T1w head and the mask.
-    #${FSLDIR}/bin/applywarp --rel --interp=spline -i ${T1wFolder}/${T1wImage} -r ${T1wTemplate}  --premat=${T1wFolder}/xfms/acpc.mat -o ${T1wFolder}/${T1wImage}_acpc
-    #${FSLDIR}/bin/applywarp --rel --interp=nn -i ${T1wFolder}/${T1wImage}_brain_mask -r ${T1wTemplateBrain} --premat=${T1wFolder}/xfms/acpc.mat -o ${T1wFolder}/${T1wImage}_acpc_brain_mask
+    ${FSLDIR}/bin/flirt -in ${T1wFolder}/${T1wImage}_acpc_brain_mask -interp nearestneighbour -ref ${T2wFolder}/${T2wImage}_acpc \
+        -applyxfm -init ${T1wFolder}/xfms/tmpT1w2T2w.mat -out ${T2wFolder}/${T2wImage}_acpc_brain_mask
 
-    # Get matrices for T1w to T2w brain masking...
-    #${FSLDIR}/bin/flirt -in ${T1wFolder}/${T1wImage} -ref ${T2wFolder}/${T2wImage} -cost mutualinfo -searchrx -15 15 -searchry -15 15 -searchrz -15 15 -dof 6 -omat ${T1wFolder}/xfms/tmpT1w2T2w.mat
-    # ...and for T2w to T1w.
-    #${FSLDIR}/bin/convert_xfm -omat ${T2wFolder}/xfms/tmpT2w2T1w.mat -inverse ${T1wFolder}/xfms/tmpT1w2T2w.mat
-
-    # Transform T1w brain mask to T2w space to get the T2 brain mask.
-    #${FSLDIR}/bin/flirt -in ${T1wFolder}/${T1wImage}_brain_mask -interp nearestneighbour -ref ${T2wFolder}/${T2wImage} -applyxfm -init ${T1wFolder}/xfms/tmpT1w2T2w.mat -out ${T2wFolder}/${T2wImage}_brain_mask
-
-    # Extract the T2 brain using the T1 mask that is already acpc-aligned.
-    ${FSLDIR}/bin/fslmaths ${T2wFolder}/${T2wImage} -mas ${T2wFolder}/${T1wImage}_acpc_brain_mask ${T2wFolder}/${T2wImage}_brain
-
-    # Get the T2w to ACPC matrix (t2 -> t1 -> acpc = t2 -> acpc).
-    #${FSLDIR}/bin/convert_xfm -omat ${T2wFolder}/xfms/acpc.mat -concat ${T1wFolder}/xfms/acpc.mat ${T2wFolder}/xfms/tmpT2w2T1w.mat
-
-    # Finally, use the T2w acpc.mat to ACPC-align the T2w brain, head and mask.
-    #${FSLDIR}/bin/applywarp --rel --interp=spline -i ${T2wFolder}/${T2wImage}_brain -r ${T2wTemplateBrain}  --premat=${T2wFolder}/xfms/acpc.mat -o ${T2wFolder}/${T2wImage}_acpc_brain
-    #${FSLDIR}/bin/applywarp --rel --interp=spline -i ${T2wFolder}/${T2wImage} -r ${T2wTemplate}  --premat=${T2wFolder}/xfms/acpc.mat -o ${T2wFolder}/${T2wImage}_acpc
-    #${FSLDIR}/bin/applywarp --rel --interp=nn -i ${T2wFolder}/${T2wImage}_brain_mask -r ${T2wTemplateBrain} --premat=${T2wFolder}/xfms/acpc.mat -o ${T2wFolder}/${T2wImage}_acpc_brain_mask
+    # Use the T2w brain mask to extract the T2w brain.
+    ${FSLDIR}/bin/fslmaths ${T2wFolder}/${T2wImage}_acpc -mas ${T2wFolder}/${T2wImage}_acpc_brain_mask ${T2wFolder}/${T2wImage}_acpc_brain
 
 else
     # No mask was supplied. Extract the T2 brain and make the T2w
@@ -750,7 +701,6 @@ else
 
     if [ -n "${Save}" ]; then TemplateMask=$Save; fi
 
-    # DCAN INFANT
     # initial T2w to T1w brain masking step (second in restore stage for dc corrected t2 brain mask)
     ${FSLDIR}/bin/flirt -in ${T2wFolder}/${T2wImage}_acpc -ref ${T1wFolder}/${T1wImage}_acpc -cost mutualinfo -searchrx -15 15 -searchry -15 15 -searchrz -15 15 -dof 6 -omat ${T2wFolder}/xfms/tmpT2w2T1w.mat
     ${FSLDIR}/bin/flirt -in ${T2wFolder}/${T2wImage}_acpc_brain_mask -interp nearestneighbour -ref ${T1wFolder}/${T1wImage}_acpc -applyxfm -init ${T2wFolder}/xfms/tmpT2w2T1w.mat -out ${T1wFolder}/${T1wImage}_acpc_brain_mask

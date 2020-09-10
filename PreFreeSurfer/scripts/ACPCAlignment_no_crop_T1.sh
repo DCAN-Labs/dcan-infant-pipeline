@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash 
 #set -e
 
 # Requirements for this script
@@ -10,7 +10,7 @@
 Usage() {
   echo "`basename $0`: Tool for creating a 6 DOF alignment of the AC, ACPC line and hemispheric plane in MNI space"
   echo " "
-  echo "Usage: `basename $0` --workingdir=<working dir> --in=<input image> --ref=<reference image> --out=<output image> --omat=<output matrix> [--brainsize=<brainsize>] "
+  echo "Usage: `basename $0` --workingdir=<working dir> --in=<input image> --ref=<reference image> --out=<output image> --omat=<output matrix> [--brainsize=<brainsize>]"
 }
 
 # function for parsing options
@@ -52,6 +52,7 @@ Reference=`getopt1 "--ref" $@`  # "$3"
 Output=`getopt1 "--out" $@`  # "$4"
 OutputMatrix=`getopt1 "--omat" $@`  # "$5"
 BrainSizeOpt=`getopt1 "--brainsize" $@`  # "$6"
+T2_Reference=`getopt1 "--ref_t2" $@`  # "$7"
 
 # default parameters
 Reference=`defaultopt ${Reference} ${FSLDIR}/data/standard/MNI152_T1_1mm`
@@ -72,7 +73,7 @@ echo "PWD = `pwd`" >> $WD/log.txt
 echo "date: `date`" >> $WD/log.txt
 echo " " >> $WD/log.txt
 
-########################################## DO WORK ##########################################
+########################################## DO WORK ########################################## 
 
 # Crop the FOV
 ${FSLDIR}/bin/robustfov -i "${Input}" -m "$WD"/roi2full.mat -r "$WD"/robustroi.nii.gz $BrainSizeOpt
@@ -81,7 +82,7 @@ ${FSLDIR}/bin/robustfov -i "${Input}" -m "$WD"/roi2full.mat -r "$WD"/robustroi.n
 ${FSLDIR}/bin/convert_xfm -omat "$WD"/full2roi.mat -inverse "$WD"/roi2full.mat
 
 # Register cropped image to MNI152 (12 DOF)
-${FSLDIR}/bin/flirt -interp spline -in "$WD"/robustroi.nii.gz -ref "$Reference" -omat "$WD"/roi2std.mat -out "$WD"/acpc_final.nii.gz -searchrx -45 45 -searchry -30 30 -searchrz -30 30
+${FSLDIR}/bin/flirt -interp spline -in "$WD"/robustroi.nii.gz -ref "$T2_Reference" -omat "$WD"/roi2std.mat -out "$WD"/acpc_final.nii.gz -searchrx -45 45 -searchry -30 30 -searchrz -30 30
 
 # Concatenate matrices to get full FOV to MNI
 ${FSLDIR}/bin/convert_xfm -omat "$WD"/full2std.mat -concat "$WD"/roi2std.mat "$WD"/full2roi.mat
@@ -90,13 +91,14 @@ ${FSLDIR}/bin/convert_xfm -omat "$WD"/full2std.mat -concat "$WD"/roi2std.mat "$W
 ${PYTHON2} ${FSLDIR}/bin/aff2rigid "$WD"/full2std.mat "$OutputMatrix"
 
 # Create a resampled image (ACPC aligned) using spline interpolation
-${FSLDIR}/bin/applywarp --rel --interp=spline -i "${Input}" -r "$Reference" --premat="$OutputMatrix" -o "${Output}"
+${FSLDIR}/bin/applywarp --rel --interp=spline -i "${Input}" -r "$Reference" --premat="$OutputMatrix" -o "${Output}" 
+
 
 echo " "
 echo " END: ACPCAlignment"
 echo " END: `date`" >> $WD/log.txt
 
-########################################## QA STUFF ##########################################
+########################################## QA STUFF ########################################## 
 
 if [ -e $WD/qa.txt ] ; then rm -f $WD/qa.txt ; fi
 echo "cd `pwd`" >> $WD/qa.txt
