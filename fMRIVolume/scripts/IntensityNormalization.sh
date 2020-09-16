@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -x
 
 # Intensity normalisation, and bias field correction, and optional Jacobian modulation, applied to fMRI images (all inputs must be in fMRI space)
 
