@@ -364,7 +364,7 @@ acpc_align_script=${HCPPIPEDIR_PreFS}/ACPCAlignment_with_crop.sh
 if [ -n "${crop}" ] && [[ "${crop^^}" == "FALSE" ]] ; then
     acpc_align_script=${HCPPIPEDIR_PreFS}/ACPCAlignment_no_crop.sh
 fi
-sup
+
 # ------------------------------------------------------------------------------
 #  Show Command Line Options
 # ------------------------------------------------------------------------------
