@@ -423,6 +423,9 @@ T1wFolder="T1w" #Location of T1w images
 if $useT2; then
     T2wImage="T2w"
     T2wFolder="T2w" #Location of T2w images
+else
+    log_Msg "Error. The infant pipeline cannot process subjects without T2w data."
+    exit 1
 fi
 
 if [ ! ${T1wNormalized} = "NONE" ]; then
