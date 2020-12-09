@@ -257,6 +257,13 @@ else
     # Default is to use the 17th volume.
     MotionCorrectionFrame=16
 fi
+# Check the number of frames. If there are too few frames, may not want to
+# include this run.
+frames_in_orig=$( fslval ${fMRIFolder}/${OrigTCSName} dim4 )
+if (( frames_in_orig < MotionCorrectionFrame+1 )) ; then
+    log_Msg "Too few frames (${frames_in_orig}) in ${OrigTCSName}. Exiting."
+    exit 1
+fi
 if [ $fMRIScout = "NONE" ] ; then
   echo Making $OrigScoutName from frame ${MotionCorrectionFrame} of $OrigTCSName.
   ${RUN} ${FSLDIR}/bin/fslroi "$fMRIFolder"/"$OrigTCSName" "$fMRIFolder"/"$OrigScoutName" ${MotionCorrectionFrame} 1
