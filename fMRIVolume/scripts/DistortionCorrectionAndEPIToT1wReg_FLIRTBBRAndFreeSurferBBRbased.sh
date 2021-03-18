@@ -168,10 +168,10 @@ BiasCorrection=`getopt1 "--biascorrection" $@`
 UseJacobian=`getopt1 "--usejacobian" $@`
 useT2=`getopt1 "--useT2" $@`
 
-if [[ -n $HCPPIPEDEBUG ]]
-then
+#if [[ -n $HCPPIPEDEBUG ]]
+#then
     set -x
-fi
+#fi
 
 #error check bias correction opt
 case "$BiasCorrection" in
