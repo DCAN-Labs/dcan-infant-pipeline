@@ -353,6 +353,22 @@ UseJacobian=`opts_DefaultOpt $UseJacobian "true"`
 # useT2 flag added for excluding or include T2w image in processing AP 20162111
 # Any line that requires the T2 should be encapsulated in an if-then statement and skipped if useT2=false
 useT2=`opts_GetOpt1 "--useT2" $@`
+if [ -z ${useT2} ] ; then
+    useT2=true
+fi
+if ! $useT2 ; then
+    # The infant pipeline really does not work well with T1w-only when the subject is
+    # under 8mos. This is due to intensity and the fact that it is almost impossible to
+    # skull-strip an infant brain. Therefore, it is necessary to supply a brainmask for
+    # the T1w when useT2 is false.
+    if [ -z "${T1BrainMask}" ] ; then
+        log_Msg "Error: To process without a T2w, a brain mask for the T1w is required."
+        if [ -n "${2}" ] ; then
+            log_Msg "${0}, line ${LINENO}"
+        fi
+        exit 1
+    fi
+fi
 
 # Cropping: If processing images that don't have neck and shoulders, specify --crop=false.
 crop=`opts_GetOpt1 "--crop" $@`
@@ -437,7 +453,7 @@ if [ -z "${T1wStudyTemplate}" ]; then
     T1wStudyTemplate="NONE"
     T1wStudyTemplateBrain="NONE"
 fi
-if [ -z "${T2wStudyTemplate}" ]; then
+if $useT2 && [ -z "${T2wStudyTemplate}" ]; then
     # T2wStudyTemplate is required.
     log_Error_Abort "T2wStudyTemplate is a required argument and was not specified."
 fi
@@ -647,7 +663,7 @@ if [ -n "${T1BrainMask}" ] ; then
 
     # Copy the user-supplied mask to ${T1wFolder}/${T1wImage}_brain_mask.
     imcp ${T1BrainMask} ${T1wFolder}/${T1wImage}_brain_mask
-    
+
     # The T1w head was ACPC aligned in the loop above. Use the resulting
     # acpc.mat to align the mask.
     ${FSLDIR}/bin/applywarp --rel --interp=nn -i ${T1wFolder}/${T1wImage}_brain_mask -r ${T1wTemplateBrain} --premat=${T1wFolder}/xfms/acpc.mat -o ${T1wFolder}/${T1wImage}_acpc_brain_mask
@@ -655,17 +671,19 @@ if [ -n "${T1BrainMask}" ] ; then
     # Use the ACPC aligned T1w brain mask to extract the T1w brain.
     ${FSLDIR}/bin/fslmaths ${T1wFolder}/${T1wImage}_acpc -mas ${T1wFolder}/${T1wImage}_acpc_brain_mask ${T1wFolder}/${T1wImage}_acpc_brain
 
-    # Align the T1w to the T2w to get the matrix that will be needed to make
-    # the T2w mask from the T1w mask.
-    ${FSLDIR}/bin/flirt -in ${T1wFolder}/${T1wImage}_acpc -ref ${T2wFolder}/${T2wImage}_acpc -cost mutualinfo \
-        -searchrx -15 15 -searchry -15 15 -searchrz -15 15 -dof 6 \
-        -omat ${T1wFolder}/xfms/tmpT1w2T2w.mat
+    if $useT2 ; then
+        # Align the T1w to the T2w to get the matrix that will be needed to make
+        # the T2w mask from the T1w mask.
+        ${FSLDIR}/bin/flirt -in ${T1wFolder}/${T1wImage}_acpc -ref ${T2wFolder}/${T2wImage}_acpc -cost mutualinfo \
+            -searchrx -15 15 -searchry -15 15 -searchrz -15 15 -dof 6 \
+            -omat ${T1wFolder}/xfms/tmpT1w2T2w.mat
 
-    ${FSLDIR}/bin/flirt -in ${T1wFolder}/${T1wImage}_acpc_brain_mask -interp nearestneighbour -ref ${T2wFolder}/${T2wImage}_acpc \
-        -applyxfm -init ${T1wFolder}/xfms/tmpT1w2T2w.mat -out ${T2wFolder}/${T2wImage}_acpc_brain_mask
+        ${FSLDIR}/bin/flirt -in ${T1wFolder}/${T1wImage}_acpc_brain_mask -interp nearestneighbour -ref ${T2wFolder}/${T2wImage}_acpc \
+            -applyxfm -init ${T1wFolder}/xfms/tmpT1w2T2w.mat -out ${T2wFolder}/${T2wImage}_acpc_brain_mask
 
-    # Use the T2w brain mask to extract the T2w brain.
-    ${FSLDIR}/bin/fslmaths ${T2wFolder}/${T2wImage}_acpc -mas ${T2wFolder}/${T2wImage}_acpc_brain_mask ${T2wFolder}/${T2wImage}_acpc_brain
+        # Use the T2w brain mask to extract the T2w brain.
+        ${FSLDIR}/bin/fslmaths ${T2wFolder}/${T2wImage}_acpc -mas ${T2wFolder}/${T2wImage}_acpc_brain_mask ${T2wFolder}/${T2wImage}_acpc_brain
+    fi
 
 else
     # No mask was supplied. Extract the T2 brain and make the T2w
@@ -712,12 +730,18 @@ fi
 # following files:
 #    ${T1wFolder}/${T1wImage}_acpc_brain
 #    ${T1wFolder}/${T1wImage}_acpc_brain_mask
-#    ${T2wFolder}/${T2wImage}_acpc_brain
-#    ${T2wFolder}/${T2wImage}_acpc_brain_mask
 #    ${T1wFolder}/xfms/acpc.mat
-for FILE in ${T1wFolder}/${T1wImage}_acpc_brain.nii.gz ${T1wFolder}/${T1wImage}_acpc_brain_mask.nii.gz ${T2wFolder}/${T2wImage}_acpc_brain.nii.gz ${T2wFolder}/${T2wImage}_acpc_brain_mask.nii.gz ${T1wFolder}/xfms/acpc.mat ; do
+#    if $useT2:
+#        ${T2wFolder}/${T2wImage}_acpc_brain
+#        ${T2wFolder}/${T2wImage}_acpc_brain_mask
+for FILE in ${T1wFolder}/${T1wImage}_acpc_brain.nii.gz ${T1wFolder}/${T1wImage}_acpc_brain_mask.nii.gz ${T1wFolder}/xfms/acpc.mat ; do
     assert_file_exists ${FILE} ${LINENO}
 done
+if $useT2
+    for FILE in ${T2wFolder}/${T2wImage}_acpc_brain.nii.gz ${T2wFolder}/${T2wImage}_acpc_brain_mask.nii.gz ; do
+        assert_file_exists ${FILE} ${LINENO}
+    done
+fi
 
 
 # ------------------------------------------------------------------------------
@@ -861,7 +885,9 @@ elif ! [ -e ${T1wFolder}/${T1wImage}_acpc_dc_restore_brain.nii.gz ] && ! [ -e ${
     log_Error_Abort "After BiasFieldCorrection, ${T1wFolder}/${T1wImage}_acpc_dc_restore_brain does not exist."
 fi
 
-fslmaths ${T1wFolder}/${T2wImage}_acpc_dc_restore_brain -bin ${T1wFolder}/${T2wImage}_acpc_dc_restore_brain_mask
+if ${useT2} ; then
+    fslmaths ${T1wFolder}/${T2wImage}_acpc_dc_restore_brain -bin ${T1wFolder}/${T2wImage}_acpc_dc_restore_brain_mask
+fi
 
 # If Atropos parameters are not specified, do this the way we've done it in the past.
 if [ -z "${AtroposLabelMin}" ] ; then AtroposLabelMin=4; fi
