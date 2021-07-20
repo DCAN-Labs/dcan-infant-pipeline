@@ -70,7 +70,7 @@ fslsplit ${WD}/atl_allroi.nii.gz atl_ROI -t
 ${CARET7DIR}/wb_command -volume-label-export-table ${ROIFolder}/Atlas_ROIs.${GrayordinatesResolution}.nii.gz 1 ${WD}/labelfile.txt
 
 #initialize workbench command for creating dense time series.
-DTSCommand="${CARET7DIR}/wb_command -cifti-create-dense-from-template ${WD}/${NameOffMRI}_temp_orig_atlas.dtseries.nii ${WD}/${NameOffMRI}_temp_atlas.dtseries.nii -series ${TR} 0.0 "
+#DTSCommand="${CARET7DIR}/wb_command -cifti-create-dense-from-template ${WD}/${NameOffMRI}_temp_orig_atlas.dtseries.nii ${WD}/${NameOffMRI}_temp_atlas.dtseries.nii -series ${TR} 0.0 "
 #initialize command to make sub2atl_label_ROI.2.nii.gz
 Sub2AtlCmd=""
 
@@ -123,8 +123,10 @@ for file in $( ls sub_ROI*.nii.gz ); do # next ROI file
     #split back into a volumetric timeseries file
     ${CARET7DIR}/wb_command -cifti-separate ${WD}/${NameOffMRI}_temp_subject_dilate_resample_smooth_${ROInum}.dtseries.nii COLUMN -volume-all ${ResultsFolder}/${NameOffMRI}_${ROInum}.nii.gz
 
-    #add input to wb_command to grow iteratively
-    DTSCommand="${DTSCommand} -volume ${roi_name} ${ResultsFolder}/${NameOffMRI}_${ROInum}.nii.gz"
+    #add timeseries input to new dtseries file
+    if (( $label_count == 1 )); then ${CARET7DIR}/wb_command -cifti-create-dense-from-template ${WD}/${NameOffMRI}_temp_orig_atlas.dtseries.nii ${WD}/${NameOffMRI}_temp_atlas.dtseries.nii -series ${TR} 0.0 -volume ${roi_name} ${ResultsFolder}/${NameOffMRI}_${ROInum}.nii.gz; else wb_command -cifti-replace-structure ${WD}/${NameOffMRI}_temp_atlas.dtseries.nii COLUMN -volume ${roi_name} ${ResultsFolder}/${NameOffMRI}_${ROInum}.nii.gz ; fi
+    #add input to fslmaths command to grow iteratively
+    #DTSCommand="${DTSCommand} -volume ${roi_name} ${ResultsFolder}/${NameOffMRI}_${ROInum}.nii.gz"
     Sub2AtlCmd="${Sub2AtlCmd}-add ${WD}/sub2atl_label_${ROIname} "
 done
 
@@ -134,7 +136,7 @@ Sub2AtlCmd="${Sub2AtlCmd/-add/fslmaths}"
 set -x
 
 # Combine all of the volumes of all of the ROIs into one temporary file.
-${DTSCommand}
+#${DTSCommand}
 # Combine all of the sub2atl_label files into one.
 ${Sub2AtlCmd} ${ROIFolder}/sub2atl_ROI.${GrayordinatesResolution}.nii.gz
 
