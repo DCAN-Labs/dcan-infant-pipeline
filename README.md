@@ -1,19 +1,45 @@
 # The DCAN Labs Infant Processing Pipeline
-This fMRI minimal preprocessing pipeline is based on Washington University's HCP Pipeline. Many changes were made to accomodate the start differences in the developing brain of infants. Notably:
+This fMRI minimal preprocessing pipeline is based on Washington University's HCP
+Pipeline. Many changes were made to accomodate the differences in the
+developing brain of infants. Notably:
 
-- Skull Stripping: utilizes ANTs SyN registration.
-- Segmentation: utilizes ANTs JointFusion.
-- Surface Reconstruction: modified steps in FreeSurfer:
+- Skull Stripping:
+-- This pipeline utilizes ANTs SyN registration.
+-- This pipeline requires a T2w for skull stripping because the intensity of the
+CSF is better detected in T2w images.
+- Segmentation: The infant pipeline utilizes ANTs JointFusion. This can be
+  perfomed using either the T1w image or the T2w image, depending on the
+quality. (Default is to use T1w.)
+- Surface Reconstruction: These steps in FreeSurfer have been modified:
     * No hires.
     * The aseg is generated from JLF.
     * Adjust class means of tissue to fit T1w contrasts.
 
-fMRI -> anatomical registration - no boundary based registration, use T2w to align.
+fMRI -> anatomical registration - no boundary based registration, use T2w to
+align.
 
-Running PreFreeSurfer, FreeSurfer, and PostFreeSurfer stages will preprocess anatomical images. Following those with fMRIVolume and fMRISurface will complete the pipeline by preprocessing functional images. Knowing the inputs to each script can be difficult to keep track of and will not be documented here.
+Running PreFreeSurfer, FreeSurfer, and PostFreeSurfer stages will preprocess
+anatomical images. Following those with fMRIVolume and fMRISurface will
+preprocess functional images.
 
-It is recommended to use the infant-abcd-bids-pipeline BIDS App (whose docker images is available on DockerHub) to run the pipeline as it simplifies the interface by providing defaults for most options. The application can also run dcan-bold-preprocessing, executive summary, and custom clean. The stages are optional and can be controlled through that application's interface.
+It is recommended to use the infant-abcd-bids-pipeline BIDS App (whose docker
+image is available on DockerHub) to run the pipeline as it simplifies the
+interface by providing defaults for most options.
 
+The application can also run dcan-bold-preprocessing, executive summary, custom
+clean, and file-mapper. The stages are optional and can be controlled through
+that application's interface. Running the dcan-bold-preprocessing stage performs
+analysis and creates time series. The executive summary stage creates an HTML
+page (whose content will vary depending on the pipeline stages run) to show the
+primary outputs from the pipeline. Providing a Custom Clean json (via the
+option) will result in the pipeline running a custom-clean stage to remove many
+intermediate files generated during the processing. Providing a File Mapper json
+will cause pipeline to use file-mapper, in copy mode, to create BIDS
+derivatives.
+
+If you still want to run these scripts without the application, the
+Examples/Scripts directory contains the basic individual building blocks of the
+pipeline (and some extra).
 
 ## Please cite these papers for use of this pipeline:
 
