@@ -124,7 +124,12 @@ for file in $( ls sub_ROI*.nii.gz ); do # next ROI file
     ${CARET7DIR}/wb_command -cifti-separate ${WD}/${NameOffMRI}_temp_subject_dilate_resample_smooth_${ROInum}.dtseries.nii COLUMN -volume-all ${ResultsFolder}/${NameOffMRI}_${ROInum}.nii.gz
 
     #add timeseries input to new dtseries file
-    if (( $label_count == 1 )); then ${CARET7DIR}/wb_command -cifti-create-dense-from-template ${WD}/${NameOffMRI}_temp_orig_atlas.dtseries.nii ${WD}/${NameOffMRI}_temp_atlas.dtseries.nii -series ${TR} 0.0 -volume ${roi_name} ${ResultsFolder}/${NameOffMRI}_${ROInum}.nii.gz; else wb_command -cifti-replace-structure ${WD}/${NameOffMRI}_temp_atlas.dtseries.nii COLUMN -volume ${roi_name} ${ResultsFolder}/${NameOffMRI}_${ROInum}.nii.gz ; fi
+    if (( $label_count == 1 )); then
+        ${CARET7DIR}/wb_command -cifti-create-dense-from-template ${WD}/${NameOffMRI}_temp_orig_atlas.dtseries.nii ${WD}/${NameOffMRI}_temp_atlas.dtseries.nii -series ${TR} 0.0 -volume ${roi_name} ${ResultsFolder}/${NameOffMRI}_${ROInum}.nii.gz
+    else
+        ${CARET7DIR}/wb_command -cifti-replace-structure ${WD}/${NameOffMRI}_temp_atlas.dtseries.nii COLUMN -volume ${roi_name} ${ResultsFolder}/${NameOffMRI}_${ROInum}.nii.gz
+    fi
+
     #add input to fslmaths command to grow iteratively
     #DTSCommand="${DTSCommand} -volume ${roi_name} ${ResultsFolder}/${NameOffMRI}_${ROInum}.nii.gz"
     Sub2AtlCmd="${Sub2AtlCmd}-add ${WD}/sub2atl_label_${ROIname} "
