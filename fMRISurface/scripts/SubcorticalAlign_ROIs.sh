@@ -125,9 +125,11 @@ for file in $( ls sub_ROI*.nii.gz ); do # next ROI file
 
     #add timeseries input to new dtseries file
     if (( $label_count == 1 )); then
-        ${CARET7DIR}/wb_command -cifti-create-dense-from-template ${WD}/${NameOffMRI}_temp_orig_atlas.dtseries.nii ${WD}/${NameOffMRI}_temp_atlas.dtseries.nii -series ${TR} 0.0 -volume ${roi_name} ${ResultsFolder}/${NameOffMRI}_${ROInum}.nii.gz
+        cp ${ResultsFolder}/${NameOffMRI}_${ROInum}.nii.gz ${WD}/${NameOffMRI}_ROI2MNI_temp${label_count}.nii.gz 
     else
-        ${CARET7DIR}/wb_command -cifti-replace-structure ${WD}/${NameOffMRI}_temp_atlas.dtseries.nii COLUMN -volume ${roi_name} ${ResultsFolder}/${NameOffMRI}_${ROInum}.nii.gz
+        (( old_label = label_count - 1 ))
+        fslmaths ${WD}/${NameOffMRI}_ROI2MNI_temp${old_label}.nii.gz -add ${ResultsFolder}/${NameOffMRI}_${ROInum}.nii.gz ${WD}/${NameOffMRI}_ROI2MNI_temp${label_count}.nii.gz
+        rm ${WD}/${NameOffMRI}_ROI2MNI_temp${old_label}.nii.gz
     fi
 
     #add input to fslmaths command to grow iteratively
@@ -140,7 +142,12 @@ Sub2AtlCmd="${Sub2AtlCmd/-add/fslmaths}"
 
 set -x
 
-# Combine all of the volumes of all of the ROIs into one temporary file.
+# To keep the approach similar as before, we will put the data back into a dtseries
+${CARET7DIR}/wb_command -cifti-create-dense-timeseries ${WD}/${NameOffMRI}_temp_atlas.dtseries.nii -volume ${WD}/${NameOffMRI}_ROI2MNI_temp${label_count}.nii.gz ${ROIFolder}/Atlas_ROIs.${GrayordinatesResolution}.nii.gz
+
+#remove the final temp file
+rm ${WD}/${NameOffMRI}_ROI2MNI_temp${label_count}.nii.gz
+
 #${DTSCommand}
 # Combine all of the sub2atl_label files into one.
 ${Sub2AtlCmd} ${ROIFolder}/sub2atl_ROI.${GrayordinatesResolution}.nii.gz
