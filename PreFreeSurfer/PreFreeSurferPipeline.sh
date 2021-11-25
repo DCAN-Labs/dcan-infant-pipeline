@@ -930,31 +930,28 @@ ${RUN} ${HCPPIPEDIR_PreFS}/FakeAtlasRegistration.sh \
     --useT2=${useT2}
 
 if ! [ -z "${ASegDir}" ] ; then
-    if [ -d ${ASegDir} ] && [ -e ${ASegDir}/aseg_acpc.nii.gz ] ; then
-        # We also have a supplied aseg file for this subject.
-        echo Using supplied aseg file: ${ASegDir}/aseg_acpc.nii.gz
-        # Copy the one that was supplied; it will be used from here on....
-        scp -p ${ASegDir}/aseg_acpc.nii.gz ${T1wFolder}/aseg_acpc.nii.gz
+    # We also have a supplied aseg file for this subject.
+    echo Using supplied aseg file: ${ASegDir}/aseg_acpc.nii.gz
+    # Copy the one that was supplied; it will be used from here on....
+    scp -p ${ASegDir}/aseg_acpc.nii.gz ${T1wFolder}/aseg_acpc.nii.gz
+else
+    echo No user-supplied aseg, generate aseg file with JLF.
+    
+    # Call JLF.
+    # If T2W JLFMethod was requested and all other conditions are right, use it.
+    # Default is the T1W method.
+    assert_file_exists ${T1wFolder}/${T1wImage}_acpc_dc_restore_brain.nii.gz ${LINENO}
+
+    if [ -z "${JLFMethod}" ] ; then
+    	JLFMethod="T1W"
+    fi
+    if [[ "T2W" == "${JLFMethod}" ]] && $useT2 ; then
+    	run_JLF_T2W
+    elif [[ "T1W_ORIG" == "${JLFMethod}" ]] ; then
+   	run_JLF_orig
     else
-        echo No user-supplied aseg, generate aseg file with JLF.
-
-	# Call JLF.
-	# If T2W JLFMethod was requested and all other conditions are right, use it.
-	# Default is the T1W method.
-	assert_file_exists ${T1wFolder}/${T1wImage}_acpc_dc_restore_brain.nii.gz ${LINENO}
-
-	if [ -z "${JLFMethod}" ] ; then
-    	    JLFMethod="T1W"
-	fi
-	if [[ "T2W" == "${JLFMethod}" ]] && $useT2 ; then
-    	    run_JLF_T2W
-	elif [[ "T1W_ORIG" == "${JLFMethod}" ]] ; then
-   	    run_JLF_orig
-	else
-    	    # Default:
-    	    run_JLF_T1W
-	fi
-
+    	# Default:
+    	run_JLF_T1W
     fi
 fi
 
