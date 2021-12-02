@@ -324,7 +324,8 @@ T1wStudyTemplate=`opts_GetOpt1 "--t1studytemplate" $@`
 T1wStudyTemplateBrain=`opts_GetOpt1 "--t1studytemplatebrain" $@`
 T2wStudyTemplate=`opts_GetOpt1 "--t2studytemplate" $@`
 T2wStudyTemplateBrain=`opts_GetOpt1 "--t2studytemplatebrain" $@`
-ASegDir=`opts_GetOpt1 "--asegdir" $@`
+#ASegDir=`opts_GetOpt1 "--asegdir" $@`
+ASEG=`opts_GetOpt1 "--aseg" $@`
 AtroposMaskMethod=`opts_GetOpt1 "--atroposmaskmethod" $@`
 AtroposLabelMin=`opts_GetOpt1 "--atroposlabelmin" $@`
 AtroposLabelMax=`opts_GetOpt1 "--atroposlabelmax" $@`
@@ -401,7 +402,7 @@ log_Msg "BiasFieldSmoothingSigma: ${BiasFieldSmoothingSigma}"
 log_Msg "UseJacobian: ${UseJacobian}"
 log_Msg "useT2: ${useT2}"
 log_Msg "t1n: ${T1wNormalized}"
-log_Msg "asegdir: ${ASegDir}"
+log_Msg "aseg: ${ASEG}"
 log_Msg "crop: ${crop}"
 
 # ------------------------------------------------------------------------------
@@ -929,11 +930,14 @@ ${RUN} ${HCPPIPEDIR_PreFS}/FakeAtlasRegistration.sh \
     --fnirtconfig=${FNIRTConfig} \
     --useT2=${useT2}
 
-if ! [ -z "${ASegDir}" ] ; then
+if [ -n "${ASEG}" ] ; then
     # We also have a supplied aseg file for this subject.
-    echo Using supplied aseg file: ${ASegDir}/aseg_acpc.nii.gz
+    echo Using supplied aseg file: ${ASEG}
     # Copy the one that was supplied; it will be used from here on....
-    scp -p ${ASegDir}/aseg_acpc.nii.gz ${T1wFolder}/aseg_acpc.nii.gz
+    imcp ${ASEG} ${T1wFolder}/aseg_acpc
+    
+    #scp -p ${ASEG} ${T1wFolder}/aseg_acpc.nii.gz
+    
 else
     echo No user-supplied aseg, generate aseg file with JLF.
     
