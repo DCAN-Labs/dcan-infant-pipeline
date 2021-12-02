@@ -324,7 +324,6 @@ T1wStudyTemplate=`opts_GetOpt1 "--t1studytemplate" $@`
 T1wStudyTemplateBrain=`opts_GetOpt1 "--t1studytemplatebrain" $@`
 T2wStudyTemplate=`opts_GetOpt1 "--t2studytemplate" $@`
 T2wStudyTemplateBrain=`opts_GetOpt1 "--t2studytemplatebrain" $@`
-#ASegDir=`opts_GetOpt1 "--asegdir" $@`
 ASEG=`opts_GetOpt1 "--aseg" $@`
 AtroposMaskMethod=`opts_GetOpt1 "--atroposmaskmethod" $@`
 AtroposLabelMin=`opts_GetOpt1 "--atroposlabelmin" $@`
@@ -935,8 +934,6 @@ if [ -n "${ASEG}" ] ; then
     echo Using supplied aseg file: ${ASEG}
     # Copy the one that was supplied; it will be used from here on....
     imcp ${ASEG} ${T1wFolder}/aseg_acpc
-    
-    #scp -p ${ASEG} ${T1wFolder}/aseg_acpc.nii.gz
     
 else
     echo No user-supplied aseg, generate aseg file with JLF.
