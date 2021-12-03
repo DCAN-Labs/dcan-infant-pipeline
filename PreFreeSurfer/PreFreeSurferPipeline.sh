@@ -929,13 +929,7 @@ ${RUN} ${HCPPIPEDIR_PreFS}/FakeAtlasRegistration.sh \
     --fnirtconfig=${FNIRTConfig} \
     --useT2=${useT2}
 
-if [ -n "${ASEG}" ] ; then
-    # We also have a supplied aseg file for this subject.
-    echo Using supplied aseg file: ${ASEG}
-    # Copy the one that was supplied; it will be used from here on....
-    imcp ${ASEG} ${T1wFolder}/aseg_acpc
-    
-else
+if [ -n DEFAULT ] ; then
     echo No user-supplied aseg, generate aseg file with JLF.
     
     # Call JLF.
@@ -954,8 +948,13 @@ else
     	# Default:
     	run_JLF_T1W
     fi
+    
+else
+    # We also have a supplied aseg file for this subject.
+    echo Using supplied aseg file: ${ASEG}
+    # Copy the one that was supplied; it will be used from here on....
+    imcp ${ASEG} ${T1wFolder}/aseg_acpc    
 fi
 
 
 log_Msg "Completed"
-
