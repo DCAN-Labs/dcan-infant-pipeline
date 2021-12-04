@@ -929,7 +929,7 @@ ${RUN} ${HCPPIPEDIR_PreFS}/FakeAtlasRegistration.sh \
     --fnirtconfig=${FNIRTConfig} \
     --useT2=${useT2}
 
-if [ -n DEFAULT ] ; then
+if [[ "${ASEG}" == "DEFAULT" ]] ; then
     echo No user-supplied aseg, generate aseg file with JLF.
     
     # Call JLF.
