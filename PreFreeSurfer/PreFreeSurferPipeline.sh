@@ -324,7 +324,7 @@ T1wStudyTemplate=`opts_GetOpt1 "--t1studytemplate" $@`
 T1wStudyTemplateBrain=`opts_GetOpt1 "--t1studytemplatebrain" $@`
 T2wStudyTemplate=`opts_GetOpt1 "--t2studytemplate" $@`
 T2wStudyTemplateBrain=`opts_GetOpt1 "--t2studytemplatebrain" $@`
-ASegDir=`opts_GetOpt1 "--asegdir" $@`
+ASEG=`opts_GetOpt1 "--aseg" $@`
 AtroposMaskMethod=`opts_GetOpt1 "--atroposmaskmethod" $@`
 AtroposLabelMin=`opts_GetOpt1 "--atroposlabelmin" $@`
 AtroposLabelMax=`opts_GetOpt1 "--atroposlabelmax" $@`
@@ -401,7 +401,7 @@ log_Msg "BiasFieldSmoothingSigma: ${BiasFieldSmoothingSigma}"
 log_Msg "UseJacobian: ${UseJacobian}"
 log_Msg "useT2: ${useT2}"
 log_Msg "t1n: ${T1wNormalized}"
-log_Msg "asegdir: ${ASegDir}"
+log_Msg "aseg: ${ASEG}"
 log_Msg "crop: ${crop}"
 
 # ------------------------------------------------------------------------------
@@ -929,35 +929,32 @@ ${RUN} ${HCPPIPEDIR_PreFS}/FakeAtlasRegistration.sh \
     --fnirtconfig=${FNIRTConfig} \
     --useT2=${useT2}
 
-# Call JLF.
-# If T2W JLFMethod was requested and all other conditions are right, use it.
-# Default is the T1W method.
-assert_file_exists ${T1wFolder}/${T1wImage}_acpc_dc_restore_brain.nii.gz ${LINENO}
+if [[ "${ASEG}" == DEFAULT ]] ; then
+    echo No user-supplied aseg, generate aseg file with JLF.
+    
+    # Call JLF.
+    # If T2W JLFMethod was requested and all other conditions are right, use it.
+    # Default is the T1W method.
+    assert_file_exists ${T1wFolder}/${T1wImage}_acpc_dc_restore_brain.nii.gz ${LINENO}
 
-if [ -z "${JLFMethod}" ] ; then
-    JLFMethod="T1W"
-fi
-if [[ "T2W" == "${JLFMethod}" ]] && $useT2 ; then
-    run_JLF_T2W
-elif [[ "T1W_ORIG" == "${JLFMethod}" ]] ; then
-    run_JLF_orig
-else
-    # Default:
-    run_JLF_T1W
-fi
-
-if ! [ -z "${ASegDir}" ] ; then
-    if [ -d ${ASegDir} ] && [ -e ${ASegDir}/aseg_acpc.nii.gz ] ; then
-        # We also have a supplied aseg file for this subject.
-        echo Using supplied aseg file: ${ASegDir}/aseg_acpc.nii.gz
-        # Rename (but keep) the one we just generated....
-        mv ${T1wFolder}/aseg_acpc.nii.gz ${T1wFolder}/aseg_acpc_dcan-derived.nii.gz
-        # Copy the one that was supplied; it will be used from here on....
-        scp -p ${ASegDir}/aseg_acpc.nii.gz ${T1wFolder}/aseg_acpc.nii.gz
-    else
-        echo Using aseg file generated with JLF.
+    if [ -z "${JLFMethod}" ] ; then
+    	JLFMethod="T1W"
     fi
+    if [[ "T2W" == "${JLFMethod}" ]] && $useT2 ; then
+    	run_JLF_T2W
+    elif [[ "T1W_ORIG" == "${JLFMethod}" ]] ; then
+   	run_JLF_orig
+    else
+    	# Default:
+    	run_JLF_T1W
+    fi
+    
+else
+    # We also have a supplied aseg file for this subject.
+    echo Using supplied aseg file: ${ASEG}
+    # Copy the one that was supplied; it will be used from here on....
+    imcp ${ASEG} ${T1wFolder}/aseg_acpc    
 fi
+
 
 log_Msg "Completed"
-
