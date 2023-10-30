@@ -2,6 +2,8 @@
 
 *See full description of pipeline on the [DCAN Labs readthedocs](https://dcanlab.readthedocs.io/en/stable/) under [Infant Pipeline Documentation](https://dcanlab.readthedocs.io/en/stable/manualpro/infant/pipeline/)*
 
+*See also: [dcanumn/infant-abcd-bids-pipeline](https://github.com/DCAN-Labs/infant-abcd-bids-pipeline)*
+
 This fMRI minimal preprocessing pipeline is based on Washington University's HCP
 Pipeline. Many changes were made to accomodate the differences in the
 developing brain of infants. Notably:
