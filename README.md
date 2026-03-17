@@ -1,6 +1,6 @@
 # The DCAN Labs Infant Processing Pipeline
 
-*See full description of pipeline on the [DCAN Labs readthedocs](https://dcanlab.readthedocs.io/en/stable/) under [Infant Pipeline Documentation](https://dcanlab.readthedocs.io/en/stable/manualpro/infant/pipeline/)*
+*See full description of pipeline under [Infant Pipeline Documentation](https://cdnis-brain.readthedocs.io/infant-doc/) in the Center for Developmental NeuroImaging (CDNI) Brain handbook.*
 
 *See also: [dcanumn/infant-abcd-bids-pipeline](https://github.com/DCAN-Labs/infant-abcd-bids-pipeline)*
 
